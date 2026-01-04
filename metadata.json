@@ -1,0 +1,8 @@
+{
+  "name": "CalorieTracker",
+  "description": "A conversational nutrition logger that turns photos and text into structured nutrition data using Gemini.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
