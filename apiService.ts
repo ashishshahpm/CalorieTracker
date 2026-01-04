@@ -31,6 +31,23 @@ const firebaseConfig = {
   measurementId: "G-YL47JEBVMG"
 };
 
+/**
+ * Utility to remove 'undefined' values from objects.
+ * Firestore throws errors if it encounters 'undefined'.
+ */
+const sanitizeData = (data: any): any => {
+  if (Array.isArray(data)) {
+    return data.map(v => sanitizeData(v));
+  } else if (data !== null && typeof data === 'object') {
+    return Object.fromEntries(
+      Object.entries(data)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, sanitizeData(v)])
+    );
+  }
+  return data;
+};
+
 // Internal state
 let app: FirebaseApp;
 let db: Firestore | null = null;
@@ -103,7 +120,8 @@ export const apiService = {
       const batch = writeBatch(currentDb);
       logs.forEach(log => {
         const logRef = doc(currentDb, 'users', email, 'logs', log.id);
-        batch.set(logRef, log);
+        // Sanitize the log object to remove 'undefined' fields
+        batch.set(logRef, sanitizeData(log));
       });
       await batch.commit();
     } catch (error) {
@@ -146,7 +164,8 @@ export const apiService = {
     }
     try {
       const goalRef = doc(currentDb, 'users', email, 'config', 'goals');
-      await setDoc(goalRef, goals);
+      // Sanitize goals object
+      await setDoc(goalRef, sanitizeData(goals));
     } catch (error) {
       console.error("[Firebase] Save goals error", error);
     }
