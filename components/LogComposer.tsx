@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { extractNutrition } from '../geminiService';
 import { FoodItem, LogEntry } from '../types';
 import { ResultReview } from './ResultReview';
@@ -19,6 +18,10 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  
+  // Refs for Speech Recognition and Silence Detection
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -31,17 +34,25 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
     }
   };
 
+  const resetSilenceTimer = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = setTimeout(() => {
+      console.log("[Mic] Auto-stopping due to 3s silence");
+      stopRecording();
+    }, 3000); // Updated to 3 seconds per request
+  };
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // 1. Setup Audio Recording (for Gemini)
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
-
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
-
       recorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const reader = new FileReader();
@@ -52,8 +63,38 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
         stream.getTracks().forEach(track => track.stop());
       };
 
+      // 2. Setup Real-time Speech-to-Text
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event: any) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+          }
+          setInput(transcript);
+          resetSilenceTimer(); // Reset timer whenever actual speech is detected
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+        };
+
+        recognition.onend = () => {
+          console.log("[Mic] Recognition ended");
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      }
+
       recorder.start();
       setIsRecording(true);
+      resetSilenceTimer(); // Initial timer start
     } catch (err) {
       console.error("Mic access error:", err);
       alert("Microphone access is needed for voice logging.");
@@ -61,6 +102,16 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
   };
 
   const stopRecording = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -68,6 +119,13 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
   };
 
   const handleProcess = async (manualInput?: string, audioB64?: string) => {
+    // If we are currently recording and the user clicked "Send", stop recording first.
+    // The onstop handler will eventually call handleProcess again with the audio data.
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
     const textToProcess = manualInput !== undefined ? manualInput : input;
     if (!textToProcess.trim() && !image && !audioB64) return;
     
@@ -90,7 +148,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
       date: selectedDate,
       items: finalItems,
       image: image || undefined,
-      transcript: input || (isRecording ? "[Voice entry]" : undefined)
+      transcript: input || "[Voice entry]"
     };
     
     onLogAdded(newEntry);
@@ -98,6 +156,13 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
     setInput('');
     setImage(null);
   };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    };
+  }, []);
 
   return (
     <>
@@ -148,7 +213,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
               disabled={isProcessing || (!input.trim() && !image && !isRecording)}
               onClick={() => handleProcess()}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                isProcessing || (!input.trim() && !image) ? 'bg-gray-100 text-gray-300' : 'bg-emerald-500 text-white shadow-lg'
+                isProcessing || (!input.trim() && !image && !isRecording) ? 'bg-gray-100 text-gray-300' : 'bg-emerald-500 text-white shadow-lg'
               }`}
             >
               {isProcessing ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-paper-plane text-xs"></i>}
