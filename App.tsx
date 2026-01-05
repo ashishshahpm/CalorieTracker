@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { LogEntry, UserGoals, DailyStats, User } from './types';
 import { NutritionSummary } from './components/NutritionSummary';
@@ -15,13 +14,6 @@ const toLocalDateString = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-/**
- * GOOGLE OAUTH CONFIGURATION
- * To fix origin_mismatch:
- * 1. Go to https://console.cloud.google.com/apis/credentials
- * 2. Edit your OAuth 2.0 Client ID (fchuij5r2l...)
- * 3. Add your current URL (e.g., https://your-app-url.com) to "Authorized JavaScript origins"
- */
 const GOOGLE_CLIENT_ID = "457380672728-fchuij5r2l04a87tmbjuunv8adalc9ds.apps.googleusercontent.com";
 
 const App: React.FC = () => {
@@ -41,23 +33,38 @@ const App: React.FC = () => {
 
   const hasLoadedFromServer = useRef(false);
 
+  // 1. App Boot: Restore session and load local cache IMMEDIATELY
   useEffect(() => {
+    console.log("[App] Booting...");
     const savedUser = localStorage.getItem('calorietracker_user');
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
+        console.log("[App] Session detected for:", parsed.email);
         setUser(parsed);
+        
+        // Recover previous logs for this user immediately while background sync prepares
+        const cachedLogs = localStorage.getItem(`server_logs_${parsed.email}`);
+        const cachedGoals = localStorage.getItem(`server_goals_${parsed.email}`);
+        if (cachedLogs) {
+          const parsedLogs = JSON.parse(cachedLogs);
+          setLogs(parsedLogs);
+          console.log(`[App] Pre-loaded ${parsedLogs.length} logs from cache.`);
+        }
+        if (cachedGoals) setGoals(JSON.parse(cachedGoals));
       } catch (e) {
-        console.error("[CalorieTracker] Session restore failed", e);
+        console.error("[App] Cache boot failed:", e);
       }
     }
   }, []);
 
+  // 2. Auth handling (GSI)
   useEffect(() => {
     const handleCredentialResponse = async (response: any) => {
+      console.log("[App] Received Google Credential.");
+      console.time("⏱️ Auth Flow: Full Cycle");
       try {
         const firebaseResult = await apiService.signInWithGoogle(response.credential);
-        
         if (firebaseResult) {
           const { user: fbUser } = firebaseResult;
           const userData: User = {
@@ -66,16 +73,18 @@ const App: React.FC = () => {
             picture: fbUser.photoURL || ""
           };
           
+          // Pre-load cache for this specific email before setting user
+          const cachedLogs = localStorage.getItem(`server_logs_${userData.email}`);
+          if (cachedLogs) setLogs(JSON.parse(cachedLogs));
+          
           localStorage.setItem('calorietracker_user', JSON.stringify(userData));
           setUser(userData);
+          console.timeEnd("⏱️ Auth Flow: Full Cycle");
         }
       } catch (e: any) {
-        console.error("[CalorieTracker] Auth error:", e);
-        if (e.code === 'auth/invalid-credential') {
-          alert("Sign-in failed: Client ID mismatch. Please ensure the Client ID in App.tsx matches the one in your Firebase Google Auth settings.");
-        } else {
-          alert(`Authentication failed: ${e.message}`);
-        }
+        console.timeEnd("⏱️ Auth Flow: Full Cycle");
+        console.error("[App] Auth error details:", e);
+        alert(`Sign-in error: ${e.message}`);
       }
     };
 
@@ -102,32 +111,61 @@ const App: React.FC = () => {
     if (!user) initGSI();
   }, [user]);
 
+  // 3. Server Sync: Fetch records
   useEffect(() => {
     const fetchServerData = async () => {
-      if (!user) return;
-      setIsInitialLoading(true);
+      if (!user || user.email === 'guest@local') return;
+      
+      // ONLY show the loading screen if we have zero logs.
+      // If we have cached logs, we let the user see them while we update in the background.
+      const hasCachedData = logs.length > 0;
+      if (!hasCachedData) setIsInitialLoading(true);
+      
+      console.group("[App] Sync Profiling");
+      console.time("⏱️ Sync Sequence: Total");
+      const startTime = performance.now();
+      
+      const FETCH_TIMEOUT = 15000;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`Server timed out after ${FETCH_TIMEOUT/1000}s`)), FETCH_TIMEOUT)
+      );
+
       try {
-        const [serverLogs, serverGoals] = await Promise.all([
-          apiService.fetchLogs(user.email),
-          apiService.fetchGoals(user.email)
-        ]);
+        console.log("[App] Fetching latest from Firestore...");
+        const [serverLogs, serverGoals] = await Promise.race([
+          Promise.all([
+            apiService.fetchLogs(user.email),
+            apiService.fetchGoals(user.email)
+          ]),
+          timeoutPromise
+        ]) as [LogEntry[], UserGoals | null];
+
+        const duration = (performance.now() - startTime).toFixed(0);
+        console.info(`[App] Sync SUCCESS. Server returned ${serverLogs.length} items. Time: ${duration}ms`);
+        console.timeEnd("⏱️ Sync Sequence: Total");
+        
         setLogs(serverLogs);
         if (serverGoals) setGoals(serverGoals);
         hasLoadedFromServer.current = true;
       } catch (error) {
-        console.error("[CalorieTracker] Sync error:", error);
-        // Fallback to local if server fails
+        const duration = (performance.now() - startTime).toFixed(0);
+        console.warn(`[App] Sync FAILED/SLOW (${duration}ms). Using local/cached state.`, error);
+        console.timeEnd("⏱️ Sync Sequence: Total");
+        // Mark as loaded so subsequent edits still try to sync up
         hasLoadedFromServer.current = true;
       } finally {
         setIsInitialLoading(false);
+        console.groupEnd();
       }
     };
     fetchServerData();
   }, [user?.email]);
 
+  // 4. Background Sync: Push local changes
   useEffect(() => {
     const syncToServer = async () => {
-      if (!user || !hasLoadedFromServer.current) return;
+      if (!user || !hasLoadedFromServer.current || user.email === 'guest@local') return;
+      
       setIsSyncing(true);
       try {
         await Promise.all([
@@ -135,12 +173,13 @@ const App: React.FC = () => {
           apiService.saveGoals(user.email, goals)
         ]);
       } catch (e) {
-        console.error("Sync failed", e);
+        console.error("[App] Cloud push failed:", e);
       } finally {
         setIsSyncing(false);
       }
     };
-    const timeout = setTimeout(syncToServer, 1000);
+
+    const timeout = setTimeout(syncToServer, 2000);
     return () => clearTimeout(timeout);
   }, [logs, goals, user?.email]);
 
@@ -169,7 +208,9 @@ const App: React.FC = () => {
 
   const handleDeleteLog = async (id: string) => {
     setLogs(prev => prev.filter(l => l.id !== id));
-    if (user) await apiService.deleteLog(user.email, id);
+    if (user && user.email !== 'guest@local') {
+      await apiService.deleteLog(user.email, id);
+    }
   };
 
   const handleUpdateLog = (updatedEntry: LogEntry) => {
@@ -187,6 +228,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    console.log("[App] Logging out...");
     await apiService.signOut();
     setUser(null);
     setLogs([]);
@@ -225,21 +267,6 @@ const App: React.FC = () => {
               <span className="text-[8px] bg-emerald-100 px-1.5 py-0.5 rounded uppercase ml-1">Offline</span>
             </button>
           </div>
-
-          <div className="pt-4 border-t border-gray-50">
-            <div className="bg-amber-50 rounded-2xl p-4 text-left">
-              <p className="text-[11px] font-bold text-amber-800 mb-2 flex items-center gap-2">
-                <i className="fa-solid fa-circle-info"></i>
-                Developer: Fixing "origin_mismatch"
-              </p>
-              <ol className="text-[10px] text-amber-700 space-y-1.5 list-decimal pl-4 leading-relaxed">
-                <li>Go to <b>Google Cloud Console</b> Credentials.</li>
-                <li>Edit your OAuth Client ID.</li>
-                <li>Add <code className="bg-white px-1 rounded">{window.location.origin}</code> to <b>Authorized JavaScript origins</b>.</li>
-                <li>Save and wait 5-10 minutes for propagation.</li>
-              </ol>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -250,7 +277,8 @@ const App: React.FC = () => {
       {isInitialLoading && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-md z-[100] flex flex-col items-center justify-center">
           <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
-          <p className="text-emerald-900 font-black tracking-tighter text-xl">Loading Data...</p>
+          <p className="text-emerald-900 font-black tracking-tighter text-xl animate-pulse">Checking records...</p>
+          <p className="text-emerald-500/50 text-[10px] uppercase font-bold mt-2 tracking-widest">Warming up connection</p>
         </div>
       )}
 
