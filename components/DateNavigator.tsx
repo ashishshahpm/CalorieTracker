@@ -17,7 +17,6 @@ export const DateNavigator: React.FC<Props> = ({ selectedDate, onDateSelect }) =
   const dates = [];
   const now = new Date();
 
-  // Create a 7-day window ending today (Local Time)
   for (let i = -6; i <= 0; i++) {
     const d = new Date(now);
     d.setDate(now.getDate() + i);
@@ -25,8 +24,8 @@ export const DateNavigator: React.FC<Props> = ({ selectedDate, onDateSelect }) =
   }
 
   return (
-    <div className="bg-white border-b border-gray-50 px-4 py-6 overflow-x-auto hide-scrollbar sticky top-[53px] z-10">
-      <div className="flex items-center justify-between min-w-max gap-1">
+    <div className="bg-white border-b border-gray-50 px-5 py-8 overflow-x-auto hide-scrollbar sticky top-[68px] z-10">
+      <div className="flex items-center justify-between min-w-max gap-2">
         {dates.map((date) => {
           const dateStr = toLocalDateString(date);
           const isSelected = selectedDate === dateStr;
@@ -35,25 +34,25 @@ export const DateNavigator: React.FC<Props> = ({ selectedDate, onDateSelect }) =
             <button
               key={dateStr}
               onClick={() => onDateSelect(dateStr)}
-              className={`flex flex-col items-center justify-center min-w-[50px] py-3 px-2 rounded-[20px] transition-all duration-300 ease-out ${
+              className={`flex flex-col items-center justify-center min-w-[55px] py-4 px-3 rounded-[24px] transition-all duration-300 ease-out active:scale-95 ${
                 isSelected 
-                  ? 'bg-emerald-500 text-white shadow-[0_8px_20px_rgba(16,185,129,0.3)] scale-110' 
+                  ? 'bg-emerald-500 text-white shadow-[0_12px_24px_rgba(16,185,129,0.3)] scale-110' 
                   : 'bg-transparent text-gray-300 hover:text-gray-500'
               }`}
             >
-              <span className={`text-[9px] uppercase font-black tracking-[0.15em] mb-1 ${isSelected ? 'opacity-80' : 'opacity-60'}`}>
+              <span className={`text-[10px] uppercase font-black tracking-[0.2em] mb-1.5 ${isSelected ? 'opacity-90' : 'opacity-60'}`}>
                 {date.toLocaleDateString('en-US', { weekday: 'short' })}
               </span>
-              <span className="text-base font-black leading-none">
+              <span className="text-lg font-black leading-none">
                 {date.getDate()}
               </span>
             </button>
           );
         })}
         
-        <div className="flex items-center pl-4 ml-2 border-l border-gray-100">
-          <label className="text-gray-200 hover:text-emerald-500 cursor-pointer transition-colors p-2">
-            <i className="fa-solid fa-calendar-day text-lg"></i>
+        <div className="flex items-center pl-6 ml-3 border-l border-gray-100">
+          <label className="text-gray-200 hover:text-emerald-500 cursor-pointer transition-colors p-3">
+            <i className="fa-solid fa-calendar-day text-2xl"></i>
             <input 
               type="date" 
               className="hidden" 

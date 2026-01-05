@@ -19,18 +19,16 @@ export const LogFeed: React.FC<Props> = ({ entries, onDelete, onUpdate }) => {
   };
 
   return (
-    <div className="space-y-4 min-h-[100px] relative">
-      {/* Empty State */}
+    <div className="space-y-4 sm:space-y-6 min-h-[100px] relative">
       {entries.length === 0 && (
-        <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 transition-opacity duration-300">
-          <div className="text-gray-200 mb-2">
-            <i className="fa-solid fa-utensils text-5xl"></i>
+        <div className="text-center py-16 sm:py-24 bg-white rounded-[32px] sm:rounded-[40px] border-2 border-dashed border-gray-100 transition-opacity duration-300">
+          <div className="text-gray-200 mb-4">
+            <i className="fa-solid fa-utensils text-4xl sm:text-6xl"></i>
           </div>
-          <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">No entries yet</p>
+          <p className="text-gray-400 font-bold uppercase text-[10px] sm:text-xs tracking-widest">No entries yet</p>
         </div>
       )}
 
-      {/* Entries List */}
       {entries.map((entry) => {
         const totalCals = entry.items.reduce((sum, i) => sum + i.calories, 0);
         const totalProtein = entry.items.reduce((sum, i) => sum + i.protein, 0);
@@ -41,16 +39,16 @@ export const LogFeed: React.FC<Props> = ({ entries, onDelete, onUpdate }) => {
         return (
           <div 
             key={entry.id} 
-            className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-visible group relative transition-all active:scale-[0.99] animate-in slide-in-from-bottom-2 fade-in duration-200"
+            className="bg-white rounded-[24px] sm:rounded-[32px] shadow-sm border border-gray-100 overflow-visible group relative transition-all active:scale-[0.99] animate-in slide-in-from-bottom-3 fade-in duration-200"
           >
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            <div className="p-6 sm:p-8">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest">
                   {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 
-                <div className="flex items-center gap-3 relative">
-                  <span className="text-xs font-black text-gray-500 tracking-tight">
+                <div className="flex items-center gap-2 sm:gap-4 relative">
+                  <span className="text-xs sm:text-sm font-black text-gray-500 tracking-tight">
                     {Math.round(totalCals)} kcal
                   </span>
                   
@@ -59,42 +57,41 @@ export const LogFeed: React.FC<Props> = ({ entries, onDelete, onUpdate }) => {
                       e.stopPropagation();
                       toggleMenu(entry.id);
                     }}
-                    className="text-gray-300 hover:text-gray-500 transition-colors p-1"
+                    className="text-gray-300 hover:text-gray-500 transition-colors p-2"
                   >
-                    <i className="fa-solid fa-ellipsis-vertical text-sm"></i>
+                    <i className="fa-solid fa-ellipsis-vertical text-base"></i>
                   </button>
 
-                  {/* Context Menu Dropdown */}
                   {activeMenu === entry.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)}></div>
-                      <div className="absolute right-0 top-full mt-2 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                      <div className="absolute right-0 top-full mt-2 w-40 sm:w-44 bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                         <button 
                           onClick={() => {
-                            setViewingTranscript(entry.transcript || "No transcript available for this entry.");
+                            setViewingTranscript(entry.transcript || "No transcript available.");
                             setActiveMenu(null);
                           }}
-                          className="w-full text-left px-4 py-3 text-[11px] font-black uppercase text-gray-500 hover:bg-gray-50 flex items-center gap-2"
+                          className="w-full text-left px-4 sm:px-5 py-3 sm:py-4 text-[10px] sm:text-xs font-black uppercase text-gray-500 hover:bg-gray-50 flex items-center gap-3"
                         >
-                          <i className="fa-solid fa-eye w-4"></i> View
+                          <i className="fa-solid fa-eye w-5 text-sm"></i> View
                         </button>
                         <button 
                           onClick={() => {
                             setEditingEntry(entry);
                             setActiveMenu(null);
                           }}
-                          className="w-full text-left px-4 py-3 text-[11px] font-black uppercase text-gray-500 hover:bg-gray-50 flex items-center gap-2"
+                          className="w-full text-left px-4 sm:px-5 py-3 sm:py-4 text-[10px] sm:text-xs font-black uppercase text-gray-500 hover:bg-gray-50 flex items-center gap-3"
                         >
-                          <i className="fa-solid fa-pen w-4"></i> Edit
+                          <i className="fa-solid fa-pen w-5 text-sm"></i> Edit
                         </button>
                         <button 
                           onClick={() => {
                             if (confirm('Remove this entry?')) onDelete(entry.id);
                             setActiveMenu(null);
                           }}
-                          className="w-full text-left px-4 py-3 text-[11px] font-black uppercase text-red-500 hover:bg-red-50 flex items-center gap-2"
+                          className="w-full text-left px-4 sm:px-5 py-3 sm:py-4 text-[10px] sm:text-xs font-black uppercase text-red-500 hover:bg-red-50 flex items-center gap-3"
                         >
-                          <i className="fa-solid fa-trash-can w-4"></i> Delete
+                          <i className="fa-solid fa-trash-can w-5 text-sm"></i> Delete
                         </button>
                       </div>
                     </>
@@ -102,34 +99,34 @@ export const LogFeed: React.FC<Props> = ({ entries, onDelete, onUpdate }) => {
                 </div>
               </div>
               
-              <div className="mb-4 overflow-hidden">
-                <h3 className="text-lg font-black text-gray-800 leading-tight truncate">
+              <div className="mb-4 sm:mb-6 overflow-hidden">
+                <h3 className="text-lg sm:text-xl font-black text-gray-800 leading-tight">
                   {entry.items.length > 0 ? entry.items.map(i => i.name).join(', ') : 'Unknown Entry'}
                 </h3>
               </div>
 
               {entry.image && (
-                <div className="mb-4 rounded-2xl overflow-hidden border border-gray-50 aspect-video bg-gray-50">
+                <div className="mb-4 sm:mb-6 rounded-2xl sm:rounded-3xl overflow-hidden border border-gray-50 aspect-video bg-gray-50 shadow-sm">
                   <img src={entry.image} className="w-full h-full object-cover" alt="Meal" loading="lazy" />
                 </div>
               )}
 
-              <div className="pt-4 border-t border-gray-50 flex flex-wrap gap-x-5 gap-y-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Protein:</span>
-                  <span className="text-[10px] font-black text-gray-700">{totalProtein.toFixed(1)}G</span>
+              <div className="pt-4 sm:pt-6 border-t border-gray-50 flex flex-wrap gap-x-2.5 sm:gap-x-6 gap-y-2">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-[8px] sm:text-[10px] font-black text-blue-400 uppercase tracking-widest">P</span>
+                  <span className="text-[10px] sm:text-xs font-black text-gray-700">{totalProtein.toFixed(0)}g</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">Carbs:</span>
-                  <span className="text-[10px] font-black text-gray-700">{totalCarbs.toFixed(1)}G</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-[8px] sm:text-[10px] font-black text-yellow-400 uppercase tracking-widest">C</span>
+                  <span className="text-[10px] sm:text-xs font-black text-gray-700">{totalCarbs.toFixed(0)}g</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Fat:</span>
-                  <span className="text-[10px] font-black text-gray-700">{totalFat.toFixed(1)}G</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-[8px] sm:text-[10px] font-black text-red-400 uppercase tracking-widest">F</span>
+                  <span className="text-[10px] sm:text-xs font-black text-gray-700">{totalFat.toFixed(0)}g</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Fiber:</span>
-                  <span className="text-[10px] font-black text-gray-700">{totalFiber.toFixed(1)}G</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-[8px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-widest">Fi</span>
+                  <span className="text-[10px] sm:text-xs font-black text-gray-700">{totalFiber.toFixed(0)}g</span>
                 </div>
               </div>
             </div>
@@ -137,7 +134,6 @@ export const LogFeed: React.FC<Props> = ({ entries, onDelete, onUpdate }) => {
         );
       })}
 
-      {/* Editing Modal */}
       {editingEntry && (
         <ResultReview 
           items={editingEntry.items} 
@@ -149,17 +145,16 @@ export const LogFeed: React.FC<Props> = ({ entries, onDelete, onUpdate }) => {
         />
       )}
 
-      {/* Transcript Viewer Modal */}
       {viewingTranscript && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl relative">
-            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">What you said</h4>
-            <div className="text-gray-800 font-medium leading-relaxed italic border-l-4 border-emerald-500 pl-4 py-2 bg-emerald-50/50 rounded-r-xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-8 bg-black/40 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-[32px] sm:rounded-[40px] p-8 sm:p-10 shadow-2xl relative">
+            <h4 className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4 sm:mb-6">What you said</h4>
+            <div className="text-gray-800 text-base sm:text-lg font-medium leading-relaxed italic border-l-4 border-emerald-500 pl-4 sm:pl-6 py-2 sm:py-3 bg-emerald-50/50 rounded-r-xl sm:rounded-r-2xl">
               "{viewingTranscript}"
             </div>
             <button 
               onClick={() => setViewingTranscript(null)}
-              className="mt-8 w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all active:scale-95 shadow-lg"
+              className="mt-8 sm:mt-10 w-full py-4 sm:py-5 bg-gray-900 text-white rounded-2xl sm:rounded-3xl font-black uppercase text-[10px] sm:text-xs tracking-widest hover:bg-black transition-all active:scale-95 shadow-xl"
             >
               Close
             </button>

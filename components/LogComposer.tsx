@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { extractNutrition } from '../geminiService';
 import { FoodItem, LogEntry } from '../types';
@@ -6,9 +7,40 @@ import { ResultReview } from './ResultReview';
 interface Props {
   onLogAdded: (entry: LogEntry) => void;
   selectedDate: string;
+  pastItems: Omit<FoodItem, 'id'>[];
 }
 
-export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
+// Utility to compress image to stay under storage limits
+const compressImage = (base64: string): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      const MAX_SIZE = 1024;
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = base64;
+  });
+};
+
+export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastItems }) => {
   const [input, setInput] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -19,16 +51,16 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   
-  // Refs for Speech Recognition and Silence Detection
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setImage(compressed);
       };
       reader.readAsDataURL(file);
     }
@@ -37,16 +69,13 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
   const resetSilenceTimer = () => {
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     silenceTimerRef.current = setTimeout(() => {
-      console.log("[Mic] Auto-stopping due to 3s silence");
       stopRecording();
-    }, 3000); // Updated to 3 seconds per request
+    }, 3000);
   };
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // 1. Setup Audio Recording (for Gemini)
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
@@ -63,7 +92,6 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
         stream.getTracks().forEach(track => track.stop());
       };
 
-      // 2. Setup Real-time Speech-to-Text
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -77,15 +105,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
             transcript += event.results[i][0].transcript;
           }
           setInput(transcript);
-          resetSilenceTimer(); // Reset timer whenever actual speech is detected
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error("Speech recognition error:", event.error);
-        };
-
-        recognition.onend = () => {
-          console.log("[Mic] Recognition ended");
+          resetSilenceTimer();
         };
 
         recognitionRef.current = recognition;
@@ -94,7 +114,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
 
       recorder.start();
       setIsRecording(true);
-      resetSilenceTimer(); // Initial timer start
+      resetSilenceTimer();
     } catch (err) {
       console.error("Mic access error:", err);
       alert("Microphone access is needed for voice logging.");
@@ -106,12 +126,10 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
-    
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
-
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -119,8 +137,6 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
   };
 
   const handleProcess = async (manualInput?: string, audioB64?: string) => {
-    // If we are currently recording and the user clicked "Send", stop recording first.
-    // The onstop handler will eventually call handleProcess again with the audio data.
     if (isRecording) {
       stopRecording();
       return;
@@ -131,7 +147,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
     
     setIsProcessing(true);
     try {
-      const results = await extractNutrition(textToProcess, image || undefined, audioB64);
+      const results = await extractNutrition(textToProcess, image || undefined, audioB64, pastItems);
       setDraftItems(results);
     } catch (error) {
       console.error("Processing error:", error);
@@ -150,14 +166,12 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
       image: image || undefined,
       transcript: input || "[Voice entry]"
     };
-    
     onLogAdded(newEntry);
     setDraftItems(null);
     setInput('');
     setImage(null);
   };
 
-  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
@@ -166,44 +180,44 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/90 backdrop-blur-xl border-t border-gray-100 p-5 z-30 pb-10">
+      <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/90 backdrop-blur-xl border-t border-gray-100 p-4 sm:p-6 z-30 pb-8 sm:pb-12 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
         <div className="max-w-md mx-auto relative">
           {(image || isRecording) && (
-            <div className="absolute bottom-full left-0 mb-4 flex flex-col gap-2">
+            <div className="absolute bottom-full left-0 mb-4 sm:mb-6 flex flex-col gap-2 sm:gap-3">
               {image && (
-                <div className="relative inline-block animate-in slide-in-from-bottom-2 fade-in">
-                  <img src={image} className="h-20 w-20 object-cover rounded-2xl border-4 border-white shadow-xl" alt="Preview" />
-                  <button onClick={() => setImage(null)} className="absolute -top-2 -right-2 bg-black text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] shadow-lg">
+                <div className="relative inline-block animate-in slide-in-from-bottom-3 fade-in">
+                  <img src={image} className="h-20 w-20 sm:h-24 sm:w-24 object-cover rounded-2xl sm:rounded-3xl border-4 border-white shadow-2xl" alt="Preview" />
+                  <button onClick={() => setImage(null)} className="absolute -top-2 -right-2 bg-black text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs shadow-xl">
                     <i className="fa-solid fa-xmark"></i>
                   </button>
                 </div>
               )}
               {isRecording && (
-                <div className="bg-red-500 text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-xl animate-pulse">
-                  <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Listening...</span>
+                <div className="bg-red-500 text-white px-4 py-2 sm:px-5 sm:py-3 rounded-full flex items-center gap-2 sm:gap-3 shadow-2xl animate-pulse">
+                  <span className="w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full animate-ping"></span>
+                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">Listening...</span>
                 </div>
               )}
             </div>
           )}
           
-          <div className="flex items-center gap-2 bg-gray-50 rounded-[32px] px-4 py-1.5 border border-gray-100 focus-within:bg-white focus-within:shadow-xl transition-all">
-            <button onClick={() => fileInputRef.current?.click()} className="text-gray-400 hover:text-emerald-500 p-2">
-              <i className="fa-solid fa-camera text-xl"></i>
+          <div className="flex items-center gap-1 sm:gap-3 bg-gray-50 rounded-[40px] pl-3 sm:pl-5 pr-10 sm:pr-14 py-2 sm:py-2.5 border border-gray-100 focus-within:bg-white focus-within:shadow-2xl transition-all">
+            <button onClick={() => fileInputRef.current?.click()} className="text-gray-400 hover:text-emerald-500 p-2 sm:p-3">
+              <i className="fa-solid fa-camera text-xl sm:text-2xl"></i>
             </button>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
             
             <button 
               onClick={isRecording ? stopRecording : startRecording}
-              className={`p-2 transition-all ${isRecording ? 'text-red-500 scale-125' : 'text-gray-400 hover:text-red-400'}`}
+              className={`p-2 sm:p-3 transition-all ${isRecording ? 'text-red-500 scale-125' : 'text-gray-400 hover:text-red-400'}`}
             >
-              <i className={`fa-solid ${isRecording ? 'fa-stop-circle' : 'fa-microphone'} text-xl`}></i>
+              <i className={`fa-solid ${isRecording ? 'fa-stop-circle' : 'fa-microphone'} text-xl sm:text-2xl`}></i>
             </button>
 
             <input 
               type="text"
               placeholder="What did you eat?"
-              className="flex-1 bg-transparent border-none focus:outline-none py-3 text-sm font-semibold text-gray-700 placeholder:text-gray-300"
+              className="flex-1 bg-transparent border-none focus:outline-none py-3 sm:py-4 text-base sm:text-lg font-semibold text-gray-700 placeholder:text-gray-300"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleProcess()}
@@ -212,11 +226,11 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate }) => {
             <button 
               disabled={isProcessing || (!input.trim() && !image && !isRecording)}
               onClick={() => handleProcess()}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                isProcessing || (!input.trim() && !image && !isRecording) ? 'bg-gray-100 text-gray-300' : 'bg-emerald-500 text-white shadow-lg'
+              className={`w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-full flex items-center justify-center transition-all ${
+                isProcessing || (!input.trim() && !image && !isRecording) ? 'bg-gray-100 text-gray-300' : 'bg-emerald-500 text-white shadow-xl'
               }`}
             >
-              {isProcessing ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-paper-plane text-xs"></i>}
+              {isProcessing ? <i className="fa-solid fa-spinner fa-spin text-base sm:text-lg"></i> : <i className="fa-solid fa-paper-plane text-[10px] sm:text-sm"></i>}
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { FoodItem } from "./types";
 
@@ -28,13 +29,18 @@ const FOOD_SCHEMA = {
 export const extractNutrition = async (
   text: string,
   imageB64?: string,
-  audioB64?: string
+  audioB64?: string,
+  history?: { name: string; calories: number; protein: number; carbs: number; fat: number; fiber: number }[]
 ): Promise<FoodItem[]> => {
-  // Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+  // Format history for the prompt to ensure consistency
+  const historyContext = history && history.length > 0 
+    ? `\n\nFor consistency, refer to the user's previous logs. If the current item matches one of these, use similar nutritional values unless the portion seems significantly different: ${JSON.stringify(history.slice(0, 30))}`
+    : "";
+
   const parts: any[] = [
-    { text: `Analyze the following food log. Identify each distinct food item and provide estimated nutrition (calories, protein, carbs, fat, fiber). User input: "${text || 'See attached media'}"` }
+    { text: `Analyze the following food log. Identify each distinct food item and provide estimated nutrition (calories, protein, carbs, fat, fiber). User input: "${text || 'See attached media'}"${historyContext}` }
   ];
 
   if (imageB64) {
@@ -55,7 +61,6 @@ export const extractNutrition = async (
     });
   }
 
-  // Use gemini-3-pro-preview for complex reasoning tasks like nutritional analysis from multiple inputs.
   const response: GenerateContentResponse = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
     contents: { parts },
@@ -66,12 +71,10 @@ export const extractNutrition = async (
   });
 
   try {
-    // Correctly accessing .text property (not a method) from the GenerateContentResponse object.
     const jsonStr = response.text;
     if (!jsonStr) return [];
     
     const parsed = JSON.parse(jsonStr.trim());
-    // Robust parsing of the JSON response based on the defined schema.
     const rawItems = Array.isArray(parsed) ? parsed : (parsed.items || []);
     
     return rawItems.map((item: any) => ({
