@@ -201,7 +201,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastIte
             </div>
           )}
           
-          <div className="flex items-center gap-2 sm:gap-3 bg-gray-50 rounded-[40px] pl-4 sm:pl-5 pr-12 sm:pr-14 py-2 sm:py-2.5 border border-gray-100 focus-within:bg-white focus-within:shadow-2xl transition-all">
+          <div className="flex items-center gap-2 sm:gap-3 bg-gray-50 rounded-[40px] px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-100 focus-within:bg-white focus-within:shadow-2xl transition-all">
             <button onClick={() => fileInputRef.current?.click()} className="text-gray-400 hover:text-emerald-500 p-2 sm:p-3 transition-colors">
               <i className="fa-solid fa-camera text-xl sm:text-2xl"></i>
             </button>
@@ -217,7 +217,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastIte
             <input 
               type="text"
               placeholder="What did you eat?"
-              className="flex-1 bg-transparent border-none focus:outline-none py-3.5 sm:py-4 text-base sm:text-lg font-semibold text-gray-700 placeholder:text-gray-300"
+              className="flex-1 bg-transparent border-none focus:outline-none py-3 sm:py-4 text-base sm:text-lg font-bold text-gray-700 placeholder:text-gray-300 min-w-0"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleProcess()}
@@ -226,7 +226,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastIte
             <button 
               disabled={isProcessing || (!input.trim() && !image && !isRecording)}
               onClick={() => handleProcess()}
-              className={`absolute right-1 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
+              className={`w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 rounded-full flex items-center justify-center transition-all ${
                 isProcessing || (!input.trim() && !image && !isRecording) ? 'bg-gray-100 text-gray-300' : 'bg-emerald-500 text-white shadow-xl scale-100 active:scale-90'
               }`}
             >

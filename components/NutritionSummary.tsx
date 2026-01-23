@@ -22,16 +22,16 @@ export const NutritionSummary: React.FC<Props> = ({ stats, goals }) => {
     <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-6 sm:p-8 space-y-7 sm:space-y-8 min-h-[300px] sm:min-h-[320px]">
       <div className="flex justify-between items-start gap-4">
         <div className="space-y-2">
-          <p className="text-gray-400 text-xs sm:text-sm font-black uppercase tracking-widest">Daily Calories</p>
+          <p className="text-gray-400 text-[10px] sm:text-sm font-black uppercase tracking-widest">Daily Calories</p>
           <div className="flex items-baseline gap-2">
-            <h3 className="text-4xl sm:text-5xl font-black text-gray-800 leading-none min-w-[60px] sm:min-w-[75px]">
+            <h3 className="text-3xl sm:text-5xl font-black text-gray-800 leading-none min-w-[50px] sm:min-w-[75px]">
               {Math.round(stats.calories)}
             </h3>
-            <span className="text-base sm:text-xl font-bold text-gray-300">/ {goals.calories}</span>
+            <span className="text-sm sm:text-xl font-bold text-gray-300">/ {goals.calories}</span>
           </div>
         </div>
         <div className="text-right">
-          <span className="text-xs sm:text-sm font-black text-emerald-500 bg-emerald-50 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full transition-colors whitespace-nowrap">
+          <span className="text-[10px] sm:text-sm font-black text-emerald-500 bg-emerald-50 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full transition-colors whitespace-nowrap">
             {calsLeft} kcal left
           </span>
         </div>
@@ -44,12 +44,12 @@ export const NutritionSummary: React.FC<Props> = ({ stats, goals }) => {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-x-6 sm:gap-x-10 gap-y-7 sm:gap-y-8 pt-2">
+      <div className="grid grid-cols-2 gap-x-4 sm:gap-x-10 gap-y-7 sm:gap-y-8 pt-2">
         {nutrients.map((n) => (
-          <div key={n.label} className="space-y-2.5 sm:space-y-3">
-            <div className="flex justify-between text-[11px] sm:text-[13px] font-bold uppercase tracking-widest">
+          <div key={n.label} className="space-y-2 sm:space-y-3">
+            <div className="flex justify-between text-[10px] sm:text-[13px] font-bold uppercase tracking-widest gap-2 overflow-hidden">
               <span className="text-gray-400 truncate">{n.label}</span>
-              <span className="text-gray-700 tabular-nums whitespace-nowrap">{Math.round(n.value)}{n.unit} / {n.goal}{n.unit}</span>
+              <span className="text-gray-700 tabular-nums whitespace-nowrap flex-shrink-0">{Math.round(n.value)}{n.unit} / {n.goal}{n.unit}</span>
             </div>
             <div className="w-full bg-gray-50 rounded-full h-2 sm:h-2.5 overflow-hidden">
               <div 

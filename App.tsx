@@ -258,22 +258,22 @@ const App: React.FC = () => {
           <div className="w-20 h-20 sm:w-24 sm:h-24 bg-emerald-500 rounded-2xl sm:rounded-3xl flex items-center justify-center text-white text-4xl sm:text-5xl shadow-xl mx-auto mb-6">
             <i className="fa-solid fa-utensils"></i>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-emerald-900 mb-2">CalorieTracker</h1>
-          <p className="text-lg sm:text-xl text-emerald-700/60 font-medium max-w-xs mx-auto">Track your nutrition with AI.</p>
+          <h1 className="text-4xl sm:text-5xl font-black text-emerald-900 mb-2 tracking-tight">CalorieTracker</h1>
+          <p className="text-lg sm:text-xl text-emerald-700/60 font-bold max-w-xs mx-auto">Track your nutrition with AI.</p>
         </div>
         <div className="bg-white p-8 sm:p-12 rounded-[40px] sm:rounded-[50px] shadow-xl w-full max-sm:max-w-xs max-w-sm space-y-8 sm:space-y-10 flex flex-col items-center">
           <div className="space-y-6 w-full flex flex-col items-center">
-            <div id="google-login-btn" className="flex justify-center min-h-[50px] w-full scale-90 sm:scale-100"></div>
+            <div id="google-login-btn" className="flex justify-center min-h-[50px] w-full scale-100"></div>
             
             <div className="flex items-center gap-4 py-1 w-full max-w-[240px]">
               <div className="h-px bg-gray-100 flex-1"></div>
-              <span className="text-[10px] sm:text-xs font-black text-gray-300 uppercase tracking-widest">Or</span>
+              <span className="text-xs font-black text-gray-300 uppercase tracking-widest">Or</span>
               <div className="h-px bg-gray-100 flex-1"></div>
             </div>
             
             <button 
               onClick={handleGuestLogin} 
-              className="w-full max-w-[240px] py-3 sm:py-4 px-4 sm:px-6 bg-white border-2 border-emerald-50 text-emerald-600 text-base sm:text-lg font-bold rounded-full hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-sm whitespace-nowrap"
+              className="w-full max-w-[240px] py-4 px-6 bg-white border-2 border-emerald-50 text-emerald-600 text-lg font-black rounded-full hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-sm whitespace-nowrap uppercase tracking-widest"
             >
               Continue as Guest
             </button>
@@ -310,12 +310,25 @@ const App: React.FC = () => {
         </button>
       </header>
 
+      {/* Fitbit Activity Banner */}
+      {fitbitCaloriesOut !== null && (
+        <div className="bg-[#00B0B9] text-white px-6 py-3 flex items-center justify-between animate-in slide-in-from-top duration-500 shadow-lg sticky top-[68px] sm:top-[76px] z-20">
+          <div className="flex items-center gap-3">
+            <i className="fa-solid fa-person-running text-lg"></i>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Fitbit Daily Burn</span>
+          </div>
+          <div className="flex flex-col items-end leading-none">
+            <span className="text-lg font-black">{fitbitCaloriesOut} kcal</span>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 pb-40">
         <DateNavigator selectedDate={selectedDate} onDateSelect={setSelectedDate} />
         <div className="p-4 space-y-4 sm:space-y-6">
           <NutritionSummary stats={dailyStats} goals={goals} />
           <div>
-            <h2 className="text-[10px] sm:text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-2">Daily Journal</h2>
+            <h2 className="text-xs sm:text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-2">Daily Journal</h2>
             <LogFeed entries={dailyLogs} onDelete={handleDeleteLog} onUpdate={handleUpdateLog} />
           </div>
         </div>
