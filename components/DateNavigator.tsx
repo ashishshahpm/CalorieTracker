@@ -24,8 +24,8 @@ export const DateNavigator: React.FC<Props> = ({ selectedDate, onDateSelect }) =
   }
 
   return (
-    <div className="bg-white border-b border-gray-50 px-5 py-8 overflow-x-auto hide-scrollbar sticky top-[68px] z-10">
-      <div className="flex items-center justify-between min-w-max gap-2">
+    <div className="bg-white border-b border-gray-50 px-4 sm:px-6 py-6 sm:py-8 overflow-x-auto hide-scrollbar sticky top-[68px] sm:top-[76px] z-10">
+      <div className="flex items-center justify-between min-w-max gap-3">
         {dates.map((date) => {
           const dateStr = toLocalDateString(date);
           const isSelected = selectedDate === dateStr;
@@ -34,25 +34,25 @@ export const DateNavigator: React.FC<Props> = ({ selectedDate, onDateSelect }) =
             <button
               key={dateStr}
               onClick={() => onDateSelect(dateStr)}
-              className={`flex flex-col items-center justify-center min-w-[55px] py-4 px-3 rounded-[24px] transition-all duration-300 ease-out active:scale-95 ${
+              className={`flex flex-col items-center justify-center min-w-[58px] sm:min-w-[64px] py-4 sm:py-5 px-3 rounded-[28px] transition-all duration-300 ease-out active:scale-90 ${
                 isSelected 
-                  ? 'bg-emerald-500 text-white shadow-[0_12px_24px_rgba(16,185,129,0.3)] scale-110' 
+                  ? 'bg-emerald-500 text-white shadow-[0_12px_24px_rgba(16,185,129,0.3)] scale-105' 
                   : 'bg-transparent text-gray-300 hover:text-gray-500'
               }`}
             >
-              <span className={`text-[10px] uppercase font-black tracking-[0.2em] mb-1.5 ${isSelected ? 'opacity-90' : 'opacity-60'}`}>
+              <span className={`text-[10px] sm:text-[11px] uppercase font-black tracking-[0.2em] mb-2 ${isSelected ? 'opacity-90' : 'opacity-60'}`}>
                 {date.toLocaleDateString('en-US', { weekday: 'short' })}
               </span>
-              <span className="text-lg font-black leading-none">
+              <span className="text-xl sm:text-2xl font-black leading-none">
                 {date.getDate()}
               </span>
             </button>
           );
         })}
         
-        <div className="flex items-center pl-6 ml-3 border-l border-gray-100">
-          <label className="text-gray-200 hover:text-emerald-500 cursor-pointer transition-colors p-3">
-            <i className="fa-solid fa-calendar-day text-2xl"></i>
+        <div className="flex items-center pl-6 ml-2 border-l border-gray-100">
+          <label className="text-gray-200 hover:text-emerald-500 cursor-pointer transition-all p-3 active:scale-90">
+            <i className="fa-solid fa-calendar-day text-2xl sm:text-3xl"></i>
             <input 
               type="date" 
               className="hidden" 

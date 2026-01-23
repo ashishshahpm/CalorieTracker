@@ -10,7 +10,7 @@ interface Props {
   pastItems: Omit<FoodItem, 'id'>[];
 }
 
-// Utility to compress image to stay under storage limits
+// Utility to compress image to stay under storage limits (Firestore 1MB, LocalStorage 5MB)
 const compressImage = (base64: string): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -180,29 +180,29 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastIte
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/90 backdrop-blur-xl border-t border-gray-100 p-4 sm:p-6 z-30 pb-8 sm:pb-12 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+      <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/95 backdrop-blur-xl border-t border-gray-100 p-5 sm:p-6 z-30 pb-10 sm:pb-12 shadow-[0_-8px_30px_rgb(0,0,0,0.06)]">
         <div className="max-w-md mx-auto relative">
           {(image || isRecording) && (
-            <div className="absolute bottom-full left-0 mb-4 sm:mb-6 flex flex-col gap-2 sm:gap-3">
+            <div className="absolute bottom-full left-0 mb-5 sm:mb-6 flex flex-col gap-3">
               {image && (
                 <div className="relative inline-block animate-in slide-in-from-bottom-3 fade-in">
-                  <img src={image} className="h-20 w-20 sm:h-24 sm:w-24 object-cover rounded-2xl sm:rounded-3xl border-4 border-white shadow-2xl" alt="Preview" />
-                  <button onClick={() => setImage(null)} className="absolute -top-2 -right-2 bg-black text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs shadow-xl">
+                  <img src={image} className="h-24 w-24 sm:h-28 sm:w-28 object-cover rounded-3xl border-4 border-white shadow-2xl" alt="Preview" />
+                  <button onClick={() => setImage(null)} className="absolute -top-3 -right-3 bg-black text-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-xl">
                     <i className="fa-solid fa-xmark"></i>
                   </button>
                 </div>
               )}
               {isRecording && (
-                <div className="bg-red-500 text-white px-4 py-2 sm:px-5 sm:py-3 rounded-full flex items-center gap-2 sm:gap-3 shadow-2xl animate-pulse">
-                  <span className="w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full animate-ping"></span>
-                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">Listening...</span>
+                <div className="bg-red-500 text-white px-5 py-3 rounded-full flex items-center gap-3 shadow-2xl animate-pulse">
+                  <span className="w-3 h-3 bg-white rounded-full animate-ping"></span>
+                  <span className="text-xs font-black uppercase tracking-widest">Listening...</span>
                 </div>
               )}
             </div>
           )}
           
-          <div className="flex items-center gap-1 sm:gap-3 bg-gray-50 rounded-[40px] pl-3 sm:pl-5 pr-10 sm:pr-14 py-2 sm:py-2.5 border border-gray-100 focus-within:bg-white focus-within:shadow-2xl transition-all">
-            <button onClick={() => fileInputRef.current?.click()} className="text-gray-400 hover:text-emerald-500 p-2 sm:p-3">
+          <div className="flex items-center gap-2 sm:gap-3 bg-gray-50 rounded-[40px] pl-4 sm:pl-5 pr-12 sm:pr-14 py-2 sm:py-2.5 border border-gray-100 focus-within:bg-white focus-within:shadow-2xl transition-all">
+            <button onClick={() => fileInputRef.current?.click()} className="text-gray-400 hover:text-emerald-500 p-2 sm:p-3 transition-colors">
               <i className="fa-solid fa-camera text-xl sm:text-2xl"></i>
             </button>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
@@ -217,7 +217,7 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastIte
             <input 
               type="text"
               placeholder="What did you eat?"
-              className="flex-1 bg-transparent border-none focus:outline-none py-3 sm:py-4 text-base sm:text-lg font-semibold text-gray-700 placeholder:text-gray-300"
+              className="flex-1 bg-transparent border-none focus:outline-none py-3.5 sm:py-4 text-base sm:text-lg font-semibold text-gray-700 placeholder:text-gray-300"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleProcess()}
@@ -226,11 +226,11 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastIte
             <button 
               disabled={isProcessing || (!input.trim() && !image && !isRecording)}
               onClick={() => handleProcess()}
-              className={`w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-full flex items-center justify-center transition-all ${
-                isProcessing || (!input.trim() && !image && !isRecording) ? 'bg-gray-100 text-gray-300' : 'bg-emerald-500 text-white shadow-xl'
+              className={`absolute right-1 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
+                isProcessing || (!input.trim() && !image && !isRecording) ? 'bg-gray-100 text-gray-300' : 'bg-emerald-500 text-white shadow-xl scale-100 active:scale-90'
               }`}
             >
-              {isProcessing ? <i className="fa-solid fa-spinner fa-spin text-base sm:text-lg"></i> : <i className="fa-solid fa-paper-plane text-[10px] sm:text-sm"></i>}
+              {isProcessing ? <i className="fa-solid fa-spinner fa-spin text-lg"></i> : <i className="fa-solid fa-paper-plane text-sm sm:text-base"></i>}
             </button>
           </div>
         </div>
