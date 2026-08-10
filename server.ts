@@ -26,9 +26,9 @@ async function startServer() {
     try {
       const { code } = req.body;
       const fitbitConfig = {
-        clientId: '23TVTH',
-        clientSecret: '89a45c8661a5cb1dcaf53157a83b185f',
-        redirectUri: 'https://calorietracker-457380672728.us-west1.run.app/',
+        clientId: process.env.FITBIT_CLIENT_ID || '23TVTH',
+        clientSecret: process.env.FITBIT_CLIENT_SECRET || '89a45c8661a5cb1dcaf53157a83b185f',
+        redirectUri: process.env.FITBIT_REDIRECT_URI || 'https://calorietracker-457380672728.us-west1.run.app/',
         tokenUrl: 'https://api.fitbit.com/oauth2/token'
       };
 
