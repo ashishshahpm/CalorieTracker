@@ -1,6 +1,5 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { extractNutrition } from '../geminiService';
 import { FoodItem, LogEntry } from '../types';
 import { ResultReview } from './ResultReview';
 
@@ -147,11 +146,27 @@ export const LogComposer: React.FC<Props> = ({ onLogAdded, selectedDate, pastIte
     
     setIsProcessing(true);
     try {
-      const results = await extractNutrition(textToProcess, image || undefined, audioB64, pastItems);
-      setDraftItems(results);
-    } catch (error) {
+      const response = await fetch('/api/extract-nutrition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: textToProcess,
+          imageB64: image || undefined,
+          audioB64,
+          history: pastItems
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Server error');
+      }
+
+      const data = await response.json();
+      setDraftItems(data.items || []);
+    } catch (error: any) {
       console.error("Processing error:", error);
-      alert("Something went wrong analyzing your food.");
+      alert(error.message || "Something went wrong analyzing your food.");
     } finally {
       setIsProcessing(false);
     }

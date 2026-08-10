@@ -32,7 +32,15 @@ export const extractNutrition = async (
   audioB64?: string,
   history?: { name: string; calories: number; protein: number; carbs: number; fat: number; fiber: number }[]
 ): Promise<FoodItem[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
 
   // Format history for the prompt to ensure consistency
   const historyContext = history && history.length > 0 
@@ -62,7 +70,7 @@ export const extractNutrition = async (
   }
 
   const response: GenerateContentResponse = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
+    model: "gemini-3.6-flash",
     contents: { parts },
     config: {
       responseMimeType: "application/json",

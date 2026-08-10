@@ -231,14 +231,22 @@ const App: React.FC = () => {
     setLogs(prev => prev.map(l => l.id === updatedEntry.id ? updatedEntry : l));
   };
 
-  const handleGuestLogin = () => {
-    const guestUser: User = {
-      name: "Guest User",
-      email: "guest@local",
-      picture: "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
+  const [emailInput, setEmailInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [showEmailForm, setShowEmailForm] = useState(false);
+
+  const handleEmailLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput.trim()) return;
+    const userEmail = emailInput.trim().toLowerCase();
+    const userName = nameInput.trim() || userEmail.split('@')[0];
+    const customUser: User = {
+      name: userName,
+      email: userEmail,
+      picture: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userEmail)}`
     };
-    localStorage.setItem('calorietracker_user', JSON.stringify(guestUser));
-    setUser(guestUser);
+    localStorage.setItem('calorietracker_user', JSON.stringify(customUser));
+    setUser(customUser);
   };
 
   const handleLogout = async () => {
@@ -271,12 +279,63 @@ const App: React.FC = () => {
               <div className="h-px bg-gray-100 flex-1"></div>
             </div>
             
-            <button 
-              onClick={handleGuestLogin} 
-              className="w-full max-w-[240px] py-4 px-6 bg-white border-2 border-emerald-50 text-emerald-600 text-lg font-black rounded-full hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-sm whitespace-nowrap uppercase tracking-widest"
-            >
-              Continue as Guest
-            </button>
+            {!showEmailForm ? (
+              <>
+                <button 
+                  onClick={() => setShowEmailForm(true)} 
+                  className="w-full max-w-[240px] py-3.5 px-6 bg-emerald-600 text-white text-base font-black rounded-full hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md whitespace-nowrap uppercase tracking-wider"
+                >
+                  <i className="fa-solid fa-envelope text-sm"></i> Sign in with Email
+                </button>
+                <button 
+                  onClick={() => {
+                    const guestUser: User = {
+                      name: "Guest User",
+                      email: "guest@local",
+                      picture: "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
+                    };
+                    localStorage.setItem('calorietracker_user', JSON.stringify(guestUser));
+                    setUser(guestUser);
+                  }} 
+                  className="w-full max-w-[240px] py-3 px-6 bg-white border-2 border-emerald-100 text-emerald-600 text-sm font-black rounded-full hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-sm whitespace-nowrap uppercase tracking-widest"
+                >
+                  Continue as Guest
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleEmailLogin} className="w-full max-w-[260px] space-y-3">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  required
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 text-sm font-medium focus:outline-none focus:border-emerald-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Your Name (Optional)"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 text-sm font-medium focus:outline-none focus:border-emerald-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-black rounded-xl hover:bg-emerald-700 transition-all uppercase tracking-wider"
+                  >
+                    Start
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailForm(false)}
+                    className="px-3 py-2.5 bg-gray-100 text-gray-600 text-xs font-bold rounded-xl hover:bg-gray-200 transition-all"
+                  >
+                    Back
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>

@@ -1,24 +1,15 @@
 
 import { fitbitConfig } from './fitbitConfig';
 
-// Using a public CORS proxy for the prototype to bypass Fitbit's strict browser-side CORS policy.
-// In a production app, these calls should be routed through your own backend.
-const PROXY = 'https://corsproxy.io/?';
-
+// Route Fitbit requests through server API routes to prevent CORS errors in browser
 export const exchangeFitbitCodeForToken = async (code: string): Promise<string | null> => {
   try {
-    const response = await fetch(`${PROXY}${encodeURIComponent(fitbitConfig.tokenUrl)}`, {
+    const response = await fetch('/api/fitbit/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${btoa(`${fitbitConfig.clientId}:${fitbitConfig.clientSecret}`)}`,
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: fitbitConfig.redirectUri,
-        client_id: fitbitConfig.clientId,
-      }),
+      body: JSON.stringify({ code }),
     });
 
     const data = await response.json();
@@ -34,25 +25,23 @@ export const exchangeFitbitCodeForToken = async (code: string): Promise<string |
 };
 
 /**
- * Fetch calories from Fitbit API for a specific date using a CORS proxy
+ * Fetch calories from Fitbit API for a specific date
  */
 export const fetchFitbitCalories = async (token: string, date: string): Promise<number | null> => {
   try {
-    const url = `https://api.fitbit.com/1/user/-/activities/date/${date}.json`;
-    const response = await fetch(`${PROXY}${encodeURIComponent(url)}`, {
+    const response = await fetch(`/api/fitbit/calories?date=${encodeURIComponent(date)}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.errors?.[0]?.message || 'Failed to fetch');
+      throw new Error(errorData.error || 'Failed to fetch Fitbit calories');
     }
 
     const data = await response.json();
-    return data.summary?.caloriesOut || 0;
+    return data.caloriesOut || 0;
   } catch (error) {
     console.error('Error fetching Fitbit calories:', error);
     throw error;
